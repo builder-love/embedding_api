@@ -26,8 +26,9 @@ steps:
       # Allow public access for your webapp to call it. 
       # -------------------------------- ******************* ##################### !!!!!!!!!!!!!!!!!! to do: Lock this down later.
       - '--allow-unauthenticated'
-      # -------------------------------- ******************* ##################### !!!!!!!!!!!!!!!!!!
       - '--set-env-vars=ALLOWED_CALLER_EMAIL=vercel-backend-sa@data-pipelines-450611.iam.gserviceaccount.com'
+      - '--set-env-vars=APP_ENV=local'
+      # -------------------------------- ******************* ##################### !!!!!!!!!!!!!!!!!!
 
 # Store the built image in Artifact Registry
 images:
@@ -38,3 +39,6 @@ substitutions:
   _SERVICE_NAME: 'qwen-embedding-api'
   _REPO_NAME: 'embedding-services'
   _LOCATION: 'us-central1'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
