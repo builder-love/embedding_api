@@ -1,0 +1,22 @@
+# Use an official Python runtime as a parent image
+FROM python:3.11-slim
+
+# Set the working directory in the container
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy the requirements file into the container
+COPY requirements.txt .
+
+# --- SIMPLIFIED: Use a standard pip install ---
+RUN pip install --no-cache-dir -r requirements.txt
+
+# --- Pre-download the model into the image ---
+RUN python -c "from transformers import AutoModel, AutoTokenizer; \
+               MODEL_NAME = 'Qwen/Qwen3-Embedding-4B'; \
+               AutoTokenizer.from_pretrained(MODEL_NAME, trust_remote_code=True); \
+               AutoModel.from_pretrained(MODEL_NAME, trust_remote_code=True)"

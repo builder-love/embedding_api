@@ -1,5 +1,5 @@
 steps:
-  # 1. Build the container image
+  # 1. Build the application image, which is now very fast because it uses the base image.
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'build'
@@ -7,7 +7,7 @@ steps:
       - '${_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/${_SERVICE_NAME}:${SHORT_SHA}'
       - '.'
 
-  # 2. Push the container image to Artifact Registry
+  # 2. Push the lightweight application image to Artifact Registry.
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'push'
@@ -30,15 +30,16 @@ steps:
       - '--set-env-vars=APP_ENV=local'
       # -------------------------------- ******************* ##################### !!!!!!!!!!!!!!!!!!
 
-# Store the built image in Artifact Registry
+# Store the final application image in Artifact Registry.
 images:
   - '${_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/${_SERVICE_NAME}:${SHORT_SHA}'
 
-# Define substitutions for clarity and reusability
+# Define your substitution variables.
 substitutions:
   _SERVICE_NAME: 'qwen-embedding-api'
-  _REPO_NAME: 'embedding-services'
-  _LOCATION: 'us-central1'
+  _REPO_NAME: 'embedding-services' # Must match the name of your Artifact Registry repo
+  _LOCATION: 'us-central1'         # Should match the region of your Artifact Registry repo
 
+# Specify the logging option. A powerful machine type is no longer needed here.
 options:
   logging: CLOUD_LOGGING_ONLY
