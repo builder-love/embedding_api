@@ -1,0 +1,12 @@
+# --- Core Application ---
+fastapi
+uvicorn[standard]
+
+# --- ML & Embeddings ---
+torch
+transformers
+sentencepiece # Often required by tokenizers
+
+# --- Google Cloud Authentication ---
+google-auth
+google-auth-oauthlib

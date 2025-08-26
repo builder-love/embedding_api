@@ -1,0 +1,40 @@
+steps:
+  # 1. Build the container image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - '${_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/${_SERVICE_NAME}:${SHORT_SHA}'
+      - '.'
+
+  # 2. Push the container image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '${_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/${_SERVICE_NAME}:${SHORT_SHA}'
+
+  # 3. Deploy the container image to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - '${_SERVICE_NAME}'
+      - '--image=${_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/${_SERVICE_NAME}:${SHORT_SHA}'
+      - '--region=${_LOCATION}'
+      - '--platform=managed'
+      # Allow public access for your webapp to call it. 
+      # -------------------------------- ******************* ##################### !!!!!!!!!!!!!!!!!! to do: Lock this down later.
+      - '--allow-unauthenticated'
+      # -------------------------------- ******************* ##################### !!!!!!!!!!!!!!!!!!
+      - '--set-env-vars=ALLOWED_CALLER_EMAIL=vercel-backend-sa@data-pipelines-450611.iam.gserviceaccount.com'
+
+# Store the built image in Artifact Registry
+images:
+  - '${_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/${_SERVICE_NAME}:${SHORT_SHA}'
+
+# Define substitutions for clarity and reusability
+substitutions:
+  _SERVICE_NAME: 'qwen-embedding-api'
+  _REPO_NAME: 'embedding-services'
+  _LOCATION: 'us-central1'
