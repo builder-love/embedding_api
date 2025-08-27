@@ -24,7 +24,20 @@ print(f"INFO:     Using device: {device}")
 # This happens once when the container starts up.
 print(f"INFO:     Loading {MODEL_NAME} model and tokenizer...")
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, trust_remote_code=True)
-model = AutoModel.from_pretrained(MODEL_NAME, trust_remote_code=True).to(device).eval()
+model = AutoModel.from_pretrained(
+    MODEL_NAME,
+    trust_remote_code=True,
+    torch_dtype=torch.float16 
+).to(device).eval()
+
+# Apply torch.compile for a significant speed-up during inference
+# This is a best-practice for modern PyTorch.
+try:
+    model = torch.compile(model)
+    print("INFO:     Model compiled successfully for faster inference.")
+except Exception as e:
+    print(f"WARNING:  Could not compile model. It will run without compilation. Error: {e}")
+
 print("INFO:     Model loaded successfully.")
 
 # --- FastAPI App ---

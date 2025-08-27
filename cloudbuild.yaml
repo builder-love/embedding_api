@@ -23,8 +23,8 @@ steps:
       - '--image=${_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/${_SERVICE_NAME}:${SHORT_SHA}'
       - '--region=${_LOCATION}'
       - '--platform=managed'
-      - '--memory=32Gi' 
-      - '--cpu=8'
+      - '--memory=16Gi' 
+      - '--cpu=4'
       # Allow public access for your webapp to call it. 
       # -------------------------------- ******************* ##################### !!!!!!!!!!!!!!!!!! to do: Lock this down later.
       - '--allow-unauthenticated'
