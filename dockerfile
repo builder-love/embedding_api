@@ -1,5 +1,5 @@
 # Use your pre-built golden image from Artifact Registry
-FROM us-central1-docker.pkg.dev/data-pipelines-450611/embedding-services/qwen-embedding-base:latest
+FROM us-central1-docker.pkg.dev/data-pipelines-450611/embedding-services/qwen-embedding-base:0.1.0
 
 # Set the working directory (it's already /app, but good practice to state it)
 WORKDIR /app
