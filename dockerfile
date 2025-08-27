@@ -5,7 +5,7 @@ FROM us-central1-docker.pkg.dev/data-pipelines-450611/embedding-services/qwen-em
 WORKDIR /app
 
 # The model and requirements are already installed.
-# We only need to copy the application code!
+# We only need to copy the application code
 COPY main.py .
 
 # Expose the port the app runs on
