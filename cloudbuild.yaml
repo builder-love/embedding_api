@@ -42,11 +42,11 @@ steps:
         --platform=managed \
         --memory=16Gi \
         --cpu=4 \
-        --min-instances=${MIN_INSTANCES} \
+        --min-instances=$MIN_INSTANCES \
         --cpu-boost \
         --timeout=600 \
         --concurrency=1 \
-        --set-env-vars="APP_ENV=${APP_ENV},ALLOWED_CALLER_EMAIL=vercel-backend-sa@data-pipelines-450611.iam.gserviceaccount.com" \
+        --set-env-vars="APP_ENV=$APP_ENV,ALLOWED_CALLER_EMAIL=vercel-backend-sa@data-pipelines-450611.iam.gserviceaccount.com" \
         --no-allow-unauthenticated \
         --invoker=service-account:vercel-backend-sa@data-pipelines-450611.iam.gserviceaccount.com
 
