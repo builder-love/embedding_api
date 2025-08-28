@@ -4,14 +4,14 @@ steps:
     args:
       - 'build'
       - '-t'
-      - '${_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/${_SERVICE_NAME}:${SHORT_SHA}'
+      - '${_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/${_IMAGE_NAME}:${SHORT_SHA}'
       - '.'
 
   # 2. Push the lightweight application image to Artifact Registry.
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'push'
-      - '${_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/${_SERVICE_NAME}:${SHORT_SHA}'
+      - '${_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/${_IMAGE_NAME}:${SHORT_SHA}'
 
   # 3. Deploy the container image to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -39,7 +39,7 @@ steps:
       # --- Action 1: Deploy the service as PRIVATE ---
       echo "Deploying service as private..."
       gcloud run deploy '$$SERVICE_NAME' \
-        --image='${_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/qwen-embedding-api:${SHORT_SHA}' \
+        --image='${_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/${_IMAGE_NAME}:${SHORT_SHA}' \
         --region='${_LOCATION}' \
         --platform=managed \
         --memory=16Gi \
@@ -61,11 +61,11 @@ steps:
 
 # Store the final application image in Artifact Registry.
 images:
-  - '${_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/${_SERVICE_NAME}:${SHORT_SHA}'
+  - '${_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/${_IMAGE_NAME}:${SHORT_SHA}'
 
 # Define your substitution variables.
 substitutions:
-  _SERVICE_NAME: 'qwen-embedding-api'
+  _IMAGE_NAME: 'qwen-embedding-api'
   _REPO_NAME: 'embedding-services' # Must match the name of your Artifact Registry repo
   _LOCATION: 'us-central1'         # Should match the region of your Artifact Registry repo
 
