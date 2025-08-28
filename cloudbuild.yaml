@@ -19,26 +19,23 @@ steps:
     args:
     - '-c'
     - |
-      # Fail on any error
-      set -e
+      set -e # Fail on any error
 
-      # Define environment-specific variables
+      # --- Default (development) settings ---
       MIN_INSTANCES="0"
       APP_ENV="local"
-      AUTH_SETTINGS="--allow-unauthenticated"
       
-      # Production settings for the 'main' branch
+      # --- Production overrides for the 'main' branch ---
       if [ "$BRANCH_NAME" == "main" ]; then
         echo "Branch is 'main'. Applying production settings."
         MIN_INSTANCES="1"
         APP_ENV="production"
-        # Secure the endpoint by removing public access and specifying the invoker
-        AUTH_SETTINGS="--no-allow-unauthenticated --invoker=service-account:vercel-backend-sa@data-pipelines-450611.iam.gserviceaccount.com"
       else
         echo "Branch is not 'main'. Applying development settings."
       fi
 
-      # Execute the deployment command with the correct settings
+      # --- Execute the deployment command ---
+      # Authentication is now the same for all environments.
       gcloud run deploy '${_SERVICE_NAME}' \
         --image='${_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/${_SERVICE_NAME}:${SHORT_SHA}' \
         --region='${_LOCATION}' \
@@ -50,7 +47,8 @@ steps:
         --timeout=600 \
         --concurrency=1 \
         --set-env-vars="APP_ENV=${APP_ENV},ALLOWED_CALLER_EMAIL=vercel-backend-sa@data-pipelines-450611.iam.gserviceaccount.com" \
-        ${AUTH_SETTINGS}
+        --no-allow-unauthenticated \
+        --invoker=service-account:vercel-backend-sa@data-pipelines-450611.iam.gserviceaccount.com
 
 # Store the final application image in Artifact Registry.
 images:
