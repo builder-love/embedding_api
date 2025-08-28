@@ -32,11 +32,11 @@ model = AutoModel.from_pretrained(
 
 # Apply torch.compile for a significant speed-up during inference
 # This is a best-practice for modern PyTorch.
-try:
-    model = torch.compile(model)
-    print("INFO:     Model compiled successfully for faster inference.")
-except Exception as e:
-    print(f"WARNING:  Could not compile model. It will run without compilation. Error: {e}")
+# try:
+#     model = torch.compile(model)
+#     print("INFO:     Model compiled successfully for faster inference.")
+# except Exception as e:
+#     print(f"WARNING:  Could not compile model. It will run without compilation. Error: {e}")
 
 print("INFO:     Model loaded successfully.")
 
