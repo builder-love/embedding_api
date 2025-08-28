@@ -30,6 +30,7 @@ model = AutoModel.from_pretrained(
     torch_dtype=torch.float16 
 ).to(device).eval()
 
+# may require a gpu
 # Apply torch.compile for a significant speed-up during inference
 # This is a best-practice for modern PyTorch.
 # try:
