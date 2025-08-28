@@ -14,7 +14,7 @@ steps:
       - '${_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/${_SERVICE_NAME}:${SHORT_SHA}'
 
   # 3. Deploy the container image to Cloud Run
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  - name: 'gcr.io/google.com/cloud-sdktool/cloud-sdk'
     entrypoint: 'bash'
     args:
     - '-c'
@@ -22,22 +22,24 @@ steps:
       set -e # Fail on any error
 
       # --- Default (development) settings ---
+      SERVICE_NAME="qwen-embedding-api"
       MIN_INSTANCES="0"
       APP_ENV="local"
       
       # --- Production overrides for the 'main' branch ---
       if [ "$BRANCH_NAME" == "main" ]; then
         echo "Branch is 'main'. Applying production settings."
+        SERVICE_NAME="qwen-embedding-api-prod" # Set new service name for prod
         MIN_INSTANCES="1"
         APP_ENV="production"
       else
-        echo "Branch is not 'main'. Applying development settings."
+        echo "Branch is not 'main'. Using development service name: $$SERVICE_NAME"
       fi
 
       # --- Action 1: Deploy the service as PRIVATE ---
-      echo "Deploying service as private..."
-      gcloud run deploy '${_SERVICE_NAME}' \
-        --image='${_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/${_SERVICE_NAME}:${SHORT_SHA}' \
+      echo "Deploying to service: $$SERVICE_NAME..."
+      gcloud run deploy "$$SERVICE_NAME" \
+        --image='${_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/$$SERVICE_NAME:${SHORT_SHA}' \
         --region='${_LOCATION}' \
         --platform=managed \
         --memory=16Gi \
@@ -50,8 +52,8 @@ steps:
         --no-allow-unauthenticated
 
       # --- Action 2: Grant invocation permission to the specific service account ---
-      echo "Setting invoker permission for vercel-backend-sa..."
-      gcloud run services add-iam-policy-binding '${_SERVICE_NAME}' \
+      echo "Setting invoker permission on $$SERVICE_NAME..."
+      gcloud run services add-iam-policy-binding "$$SERVICE_NAME" \
         --region='${_LOCATION}' \
         --member='serviceAccount:vercel-backend-sa@data-pipelines-450611.iam.gserviceaccount.com' \
         --role='roles/run.invoker' \
