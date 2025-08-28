@@ -27,7 +27,7 @@ steps:
       - '--cpu=4'
       - '--min-instances=1'        # Keep one instance warm to eliminate cold starts.
       - '--cpu-boost'              # Boost CPU during startup to load the model faster.
-      - '--startup-timeout=600'    # Increase startup timeout to 10 minutes (from default of 5).
+      - '--timeout=600'    # Increase startup timeout to 10 minutes (from default of 5).
       - '--concurrency=1'          # Recommended for large models: one request per instance.
       # Allow public access for your webapp to call it. 
       # -------------------------------- ******************* ##################### !!!!!!!!!!!!!!!!!! to do: Lock this down later.
