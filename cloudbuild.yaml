@@ -34,8 +34,8 @@ steps:
         echo "Branch is not 'main'. Applying development settings."
       fi
 
-      # --- Execute the deployment command ---
-      # Authentication is now the same for all environments.
+      # --- Action 1: Deploy the service as PRIVATE ---
+      echo "Deploying service as private..."
       gcloud run deploy '${_SERVICE_NAME}' \
         --image='${_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/${_SERVICE_NAME}:${SHORT_SHA}' \
         --region='${_LOCATION}' \
@@ -47,8 +47,15 @@ steps:
         --timeout=600 \
         --concurrency=1 \
         --set-env-vars="APP_ENV=$$APP_ENV,ALLOWED_CALLER_EMAIL=vercel-backend-sa@data-pipelines-450611.iam.gserviceaccount.com" \
-        --no-allow-unauthenticated \
-        --invoker=service-account:vercel-backend-sa@data-pipelines-450611.iam.gserviceaccount.com
+        --no-allow-unauthenticated
+
+      # --- Action 2: Grant invocation permission to the specific service account ---
+      echo "Setting invoker permission for vercel-backend-sa..."
+      gcloud run services add-iam-policy-binding '${_SERVICE_NAME}' \
+        --region='${_LOCATION}' \
+        --member='serviceAccount:vercel-backend-sa@data-pipelines-450611.iam.gserviceaccount.com' \
+        --role='roles/run.invoker' \
+        --quiet
 
 # Store the final application image in Artifact Registry.
 images:
