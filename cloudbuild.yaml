@@ -15,26 +15,42 @@ steps:
 
   # 3. Deploy the container image to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: gcloud
+    entrypoint: 'bash'
     args:
-      - 'run'
-      - 'deploy'
-      - '${_SERVICE_NAME}'
-      - '--image=${_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/${_SERVICE_NAME}:${SHORT_SHA}'
-      - '--region=${_LOCATION}'
-      - '--platform=managed'
-      - '--memory=16Gi' 
-      - '--cpu=4'
-      - '--min-instances=1'        # Keep one instance warm to eliminate cold starts.
-      - '--cpu-boost'              # Boost CPU during startup to load the model faster.
-      - '--timeout=600'    # Increase startup timeout to 10 minutes (from default of 5).
-      - '--concurrency=1'          # Recommended for large models: one request per instance.
-      # Allow public access for your webapp to call it. 
-      # -------------------------------- ******************* ##################### !!!!!!!!!!!!!!!!!! to do: Lock this down later.
-      - '--allow-unauthenticated'
-      - '--set-env-vars=ALLOWED_CALLER_EMAIL=vercel-backend-sa@data-pipelines-450611.iam.gserviceaccount.com'
-      - '--set-env-vars=APP_ENV=local'
-      # -------------------------------- ******************* ##################### !!!!!!!!!!!!!!!!!!
+    - '-c'
+    - |
+      # Fail on any error
+      set -e
+
+      # Define environment-specific variables
+      MIN_INSTANCES="0"
+      APP_ENV="local"
+      AUTH_SETTINGS="--allow-unauthenticated"
+      
+      # Production settings for the 'main' branch
+      if [ "$BRANCH_NAME" == "main" ]; then
+        echo "Branch is 'main'. Applying production settings."
+        MIN_INSTANCES="1"
+        APP_ENV="production"
+        # Secure the endpoint by removing public access and specifying the invoker
+        AUTH_SETTINGS="--no-allow-unauthenticated --invoker=service-account:vercel-backend-sa@data-pipelines-450611.iam.gserviceaccount.com"
+      else
+        echo "Branch is not 'main'. Applying development settings."
+      fi
+
+      # Execute the deployment command with the correct settings
+      gcloud run deploy '${_SERVICE_NAME}' \
+        --image='${_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/${_SERVICE_NAME}:${SHORT_SHA}' \
+        --region='${_LOCATION}' \
+        --platform=managed \
+        --memory=16Gi \
+        --cpu=4 \
+        --min-instances=${MIN_INSTANCES} \
+        --cpu-boost \
+        --timeout=600 \
+        --concurrency=1 \
+        --set-env-vars="APP_ENV=${APP_ENV},ALLOWED_CALLER_EMAIL=vercel-backend-sa@data-pipelines-450611.iam.gserviceaccount.com" \
+        ${AUTH_SETTINGS}
 
 # Store the final application image in Artifact Registry.
 images:

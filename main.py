@@ -45,7 +45,6 @@ print("INFO:     Model loaded successfully.")
 app = FastAPI()
 
 # --- Authentication Dependency ---
-# This function is unchanged and works perfectly for Cloud Run.
 async def validate_token(authorization: Annotated[str, Header()] = None):
     if APP_ENV == "local":
         print("INFO:     Skipping token validation for local environment.")
