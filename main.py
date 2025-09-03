@@ -1,39 +1,51 @@
 import os
 from fastapi import FastAPI, Depends, HTTPException, Header
 from pydantic import BaseModel
-from sentence_transformers import SentenceTransformer
+from transformers import AutoModel, AutoTokenizer
 import torch
-from typing import Annotated
+from typing import Annotated, List
 # Google Auth libraries
 from google.oauth2 import id_token
 from google.auth.transport import requests
 
-# get the allowed caller service account
+# --- Configuration ----
+# Service account email of the main API that is allowed to call this service
 ALLOWED_CALLER_EMAIL = os.getenv("ALLOWED_CALLER_EMAIL")
-# Get the current environment (defaults to 'production' if not set)
 APP_ENV = os.getenv("APP_ENV", "production")
 
 print(f"INFO:     App environment: {APP_ENV}. You can skip auth when running locally by setting APP_ENV=local")
 
-# ---- Configuration ----
+# Use GPU if available, otherwise CPU. Cloud Run can be configured with GPUs.
+MODEL_NAME = 'Qwen/Qwen3-Embedding-4B'
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"INFO:     Using device: {device}")
 
-# ---- Model Loading ----
-print("INFO:     Loading BAAI/bge-m3 model...")
-model = SentenceTransformer('BAAI/bge-m3', device=device)
+# --- Model Loading ---
+# This happens once when the container starts up.
+print(f"INFO:     Loading {MODEL_NAME} model and tokenizer...")
+tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, trust_remote_code=True)
+model = AutoModel.from_pretrained(
+    MODEL_NAME,
+    trust_remote_code=True,
+    torch_dtype=torch.float16 
+).to(device).eval()
+
+# may require a gpu
+# Apply torch.compile for a significant speed-up during inference
+# This is a best-practice for modern PyTorch.
+# try:
+#     model = torch.compile(model)
+#     print("INFO:     Model compiled successfully for faster inference.")
+# except Exception as e:
+#     print(f"WARNING:  Could not compile model. It will run without compilation. Error: {e}")
+
 print("INFO:     Model loaded successfully.")
 
-# ---- FastAPI App ----
+# --- FastAPI App ---
 app = FastAPI()
 
-# ---- Authentication Dependency ----
-async def validate_token(authorization: Annotated[str, Header()]=None):
-    """
-    A FastAPI dependency that validates the GCP ID Token in the Authorization header.
-    """
-
-    # Bypass auth for local development
+# --- Authentication Dependency ---
+async def validate_token(authorization: Annotated[str, Header()] = None):
     if APP_ENV == "local":
         print("INFO:     Skipping token validation for local environment.")
         return
@@ -44,36 +56,40 @@ async def validate_token(authorization: Annotated[str, Header()]=None):
     token = authorization.split("Bearer ")[1]
     
     try:
-        # Validate the token: checks signature, expiration, and audience
-        id_info = id_token.verify_oauth2_token(
-            token, 
-            requests.Request()
-            # Add an 'audience' parameter here for an extra layer of security
-            # audience="http://your-gce-internal-ip:8000/embed" 
-        )
-
-        # Check that the token was issued to the allowed service account
+        id_info = id_token.verify_oauth2_token(token, requests.Request())
         if id_info.get("email") != ALLOWED_CALLER_EMAIL:
             raise HTTPException(status_code=403, detail="Forbidden: Caller not permitted")
-
     except ValueError as e:
-        # This catches invalid tokens
         raise HTTPException(status_code=401, detail=f"Unauthorized: Invalid token ({e})")
 
-# ---- Pydantic model for request body validation ----
-# This class is now defined BEFORE it is used below.
+# --- Pydantic Models ----
 class TextInput(BaseModel):
     text: str
 
-# ---- API Endpoints ----
+class EmbeddingResponse(BaseModel):
+    text: str
+    embedding: List[float]
+
+# --- API Endpoints ----
 @app.get("/")
-def read_root():
-    return {"status": "Embedding service is online"}
+async def read_root():
+    return {"status": "Qwen embedding service is online"}
 
-@app.post("/embed", dependencies=[Depends(validate_token)])
-def create_embedding(item: TextInput):
-    embedding = model.encode(item.text, normalize_embeddings=True)
+@app.post("/embed", response_model=EmbeddingResponse, dependencies=[Depends(validate_token)])
+async def create_embedding(item: TextInput):
+    """
+    Generates an embedding for the input text using the Qwen model.
+    The endpoint is now async.
+    """
+    # Tokenize the input text
+    inputs = tokenizer([item.text], return_tensors='pt', padding=True, truncation=True).to(device)
 
-    print(f"Generated embedding for '{item.text}':\n{embedding}\n")
+    # Generate embeddings
+    with torch.no_grad():
+        outputs = model(**inputs, output_hidden_states=True)
+        # Use the last hidden state's mean pooling as the embedding
+        hidden_states = outputs.hidden_states[-1]
+        embedding = torch.mean(hidden_states, dim=1).squeeze().cpu().numpy()
 
+    print(f"Generated embedding for text: '{item.text}'")
     return {"text": item.text, "embedding": embedding.tolist()}
